@@ -1,117 +1,118 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
+
+// Configure runtime cache
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     const searchTerm = req.nextUrl.searchParams.get('searchTerm');
 
     const ScraperMap = async (url: string) => {
-        const browser = await puppeteer.launch({ headless: true });
-        const page = await browser.newPage();
-
-        await page.goto(url, { waitUntil: 'networkidle2' });
+        let browser;
 
         try {
-            await page.waitForSelector('button[aria-label*="Reviews for"]', { timeout: 5000 });
-        } catch (error) {
-            console.log('No reviews found');
-            await browser.close();
-            return { error: 'No reviews found' };
-        }
-
-        await page.click('button[aria-label*="Reviews for"]');
-        await page.waitForSelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf.XiKgde');
-
-        const extractReviews = async () => {
-            const reviews = await page.evaluate(() => {
-                const reviewElements = document.querySelectorAll('.jftiEf');
-                return Array.from(reviewElements).map(review => {
-                    const fullName = review.querySelector('.d4r55')?.textContent || 'No name';
-                    const stars = review.querySelector('.kvMYJc')?.getAttribute('aria-label') || 'No stars info';
-                    const reviewText = review.querySelector('.MyEned')?.textContent || 'No reviews info';
-
-                    return { fullName, stars, reviewText };
+            // Check if running in production environment
+            const isProd = process.env.NODE_ENV === 'production';
+            
+            if (isProd) {
+                // For production (serverless) environment
+                const executablePath = await chromium.executablePath();
+                
+                browser = await puppeteer.launch({
+                    args: chromium.args,
+                    defaultViewport: chromium.defaultViewport,
+                    executablePath,
+                    headless: true,
+                                    });
+            } else {
+                // For development environment
+                browser = await puppeteer.launch({
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
                 });
-            });
-            return reviews;
-        };
-
-        let reviews = await extractReviews();
-        let previousLength = 0;
-
-        while (true) {
-            await page.evaluate(async () => {
-                const reviewsSection = document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf');
-                if (reviewsSection) {
-                    reviewsSection.scrollTop = reviewsSection.scrollHeight;
-                }
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            });
-
-            const newReviews = await extractReviews();
-            if (newReviews.length === previousLength || newReviews.length >= 25) {
-                reviews = newReviews.slice(0, 25);
-                break;
             }
-            previousLength = newReviews.length;
-        }
 
-        await browser.close();
-        return reviews;
-    };
+            const page = await browser.newPage();
+            
+            // Set user agent to avoid detection
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
+            
+            // Set viewport to a reasonable size
+            await page.setViewport({ width: 1280, height: 800 });
 
-    const ScraperBusiness = async (url: string) => {
-        const browser = await puppeteer.launch({ headless: false });
-        const page = await browser.newPage();
+            // Navigation with timeout
+            await page.goto(url, { 
+                waitUntil: 'networkidle2',
+                timeout: 30000 
+            });
 
-        await page.goto(url, { waitUntil: 'networkidle2' });
+            // Wait for reviews button
+            try {
+                await page.waitForSelector('button[aria-label*="Reviews for"]', { timeout: 10000 });
+            } catch (error) {
+                console.log('No reviews found');
+                await browser.close();
+                return { error: 'No reviews found or page took too long to load' };
+            }
 
-        try {
-            await page.waitForSelector('button[aria-label*="Reviews for"]', { timeout: 5000 });
-        } catch (error) {
-            console.log('No reviews found');
-            await browser.close();
-            return { error: 'No reviews found' };
-        }
+            // Click reviews button
+            await page.click('button[aria-label*="Reviews for"]');
+            
+            // Wait for reviews container
+            await page.waitForSelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf', { timeout: 10000 });
 
-        await page.click('button[aria-label*="Reviews for"]');
-        await page.waitForSelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf.XiKgde');
+            // Extract reviews function
+            const extractReviews = async () => {
+                return page.evaluate(() => {
+                    const reviewElements = document.querySelectorAll('.jftiEf');
+                    return Array.from(reviewElements).map(review => {
+                        const fullName = review.querySelector('.d4r55')?.textContent || 'No name';
+                        const stars = review.querySelector('.kvMYJc')?.getAttribute('aria-label') || 'No stars info';
+                        const reviewText = review.querySelector('.MyEned')?.textContent || 'No reviews info';
 
-        const extractReviews = async () => {
-            const reviews = await page.evaluate(() => {
-                const reviewElements = document.querySelectorAll('.jftiEf');
-                return Array.from(reviewElements).map(review => {
-                    const fullName = review.querySelector('.d4r55')?.textContent || 'No name';
-                    const stars = review.querySelector('.kvMYJc')?.getAttribute('aria-label') || 'No stars info';
-                    const reviewText = review.querySelector('.MyEned')?.textContent || 'No reviews info';
-
-                    return { fullName, stars, reviewText };
+                        return { fullName, stars, reviewText };
+                    });
                 });
-            });
-            return reviews;
-        };
+            };
 
-        let reviews = await extractReviews();
-        let previousLength = 0;
+            // Initial extraction
+            let reviews = await extractReviews();
+            let previousLength = 0;
+            let attempts = 0;
+            const maxAttempts = 5; // Limit scrolling attempts for serverless environments
 
-        while (true) {
-            await page.evaluate(async () => {
-                const reviewsSection = document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf');
-                if (reviewsSection) {
-                    reviewsSection.scrollTop = reviewsSection.scrollHeight;
+            // Scroll to load more reviews
+            while (attempts < maxAttempts) {
+                await page.evaluate(async () => {
+                    const reviewsSection = document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf');
+                    if (reviewsSection) {
+                        reviewsSection.scrollTop = reviewsSection.scrollHeight;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                });
+
+                const newReviews = await extractReviews();
+                if (newReviews.length === previousLength || newReviews.length >= 10) {
+                    reviews = newReviews.slice(0, 10); // Limiting to 10 reviews for faster response
+                    break;
                 }
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            });
-
-            const newReviews = await extractReviews();
-            if (newReviews.length === previousLength || newReviews.length >= 25) {
-                reviews = newReviews.slice(0, 25);
-                break;
+                previousLength = newReviews.length;
+                attempts++;
             }
-            previousLength = newReviews.length;
-        }
 
-        await browser.close();
-        return reviews;
+            // Close browser
+            await browser.close();
+            return reviews;
+        } catch (error) {
+            // Make sure to close browser on error
+            if (browser) {
+                await browser.close();
+            }
+            console.error('Scraper error:', error);
+            throw error;
+        }
     };
 
     if (!searchTerm) {
@@ -119,14 +120,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        
-        if (searchTerm.startsWith('http') && !(searchTerm.includes('maps'))) {
-            const reviews = await ScraperBusiness(searchTerm);
-            return NextResponse.json(reviews);
-        }
-
-        const url = searchTerm.startsWith('http') ? searchTerm : `https://www.google.com/maps/search/${searchTerm}`;
-        
+        const url = searchTerm.startsWith('http') ? searchTerm : `https://www.google.com/maps/search/${encodeURIComponent(searchTerm)}`;
         const reviews = await ScraperMap(url);
 
         if ('error' in reviews) {
