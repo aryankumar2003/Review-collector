@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </header>
         <main className="p-6">{children}</main>
         <footer className="mt-auto p-4 bg-white border-t text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} My Dashboard App
+          © {new Date().getFullYear()} Dashboard App
         </footer>
       </body>
     </html>
