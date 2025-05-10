@@ -16,13 +16,20 @@ export const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<boolean>(false);
 
+  // Get the API base URL from environment variables, with fallback
+  const getApiBaseUrl = () => {
+    // For client-side code, use the NEXT_PUBLIC_ prefix for environment variables
+    return process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  };
+
   // Function to handle search
   const handleSearch = async (searchTerm: string) => {
     setLoading(true);
     setError(null);
     setSelected(true);
     try {
-      const response = await fetch(`/api/scrape-reviews?searchTerm=${searchTerm}`);
+      const apiUrl = `${getApiBaseUrl()}/api/scrape-reviews?searchTerm=${encodeURIComponent(searchTerm)}`;
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         throw new Error(`Search failed: ${response.status} ${response.statusText}`);
@@ -209,7 +216,7 @@ export const Dashboard = () => {
         <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-4 flex items-start">
           <Info className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" />
           <p className="text-sm">
-            <span className="font-medium">Note:</span> Currently supports business names and Google Maps links. Regular business links are not supported due to google captcha security.
+            <span className="font-medium">Note:</span> Currently supports business names and Google Maps links. Regular business website links are not supported.
           </p>
         </div>
           
