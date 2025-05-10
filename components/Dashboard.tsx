@@ -209,7 +209,7 @@ export const Dashboard = () => {
         <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-4 flex items-start">
           <Info className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" />
           <p className="text-sm">
-            <span className="font-medium">Note:</span> Currently supports business names and Google Maps links. Regular business website links are not supported due to google captcha security.
+            <span className="font-medium">Note:</span> Currently supports business names and Google Maps links. Regular business links are not supported due to google captcha security.
           </p>
         </div>
           
