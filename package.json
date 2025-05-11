@@ -11,6 +11,7 @@
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.1",
     "@radix-ui/react-dialog": "^1.1.13",
+    "@sparticuz/chromium-min": "^133.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -22,6 +23,7 @@
     "next": "15.3.2",
     "pdfkit": "^0.17.1",
     "puppeteer": "^24.8.2",
+    "puppeteer-core": "24.7",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^19.0.0",
@@ -31,6 +33,7 @@
     "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {
+    "@sparticuz/chromium": "^133.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/google.maps": "^3.58.1",
     "@types/lodash": "^4.17.16",

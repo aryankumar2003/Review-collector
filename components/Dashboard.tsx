@@ -7,8 +7,16 @@ import autocomplete from "@/lib/google";
 import { PlaceAutocompleteResult } from "@googlemaps/google-maps-services-js";
 import { Loader2, Star, FileDown, AlertCircle, X, Info } from "lucide-react";
 
+interface Review {
+  fullName: string;
+  stars: string;
+  reviewText: string;
+  datePosted?: string;
+  reviewId?: string;
+}
+
 export const Dashboard = () => {
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
   const [predictions, setPrediction] = useState<PlaceAutocompleteResult[]>([]);
   const [input, setInput] = useState<string>("");
@@ -23,29 +31,35 @@ export const Dashboard = () => {
   };
 
   // Function to handle search
-  const handleSearch = async (searchTerm: string) => {
-    setLoading(true);
-    setError(null);
-    setSelected(true);
-    try {
-      const apiUrl = `${getApiBaseUrl()}/api/scrape-reviews?searchTerm=${encodeURIComponent(searchTerm)}`;
-      const response = await fetch(apiUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setSearchResults(data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setError("Failed to fetch reviews. Please check your connection and try again.");
-    } finally {
-      setLoading(false);
-      setSelected(false);
+ const handleSearch = async (searchTerm: string) => {
+  setLoading(true);
+  setError(null);
+  setSelected(true);
+  try {
+    const apiUrl = `${getApiBaseUrl()}/api/scrape-reviews?searchTerm=${searchTerm}`;
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Search failed: ${response.status} ${response.statusText}`);
     }
-  };
-
+    
+    const data = await response.json();
+    // Check if data has reviews property and it's an array
+    if (data.reviews && Array.isArray(data.reviews)) {
+      setSearchResults(data.reviews);
+    } else if (data.error) {
+      setError(data.error);
+    } else {
+      setError("Invalid response format from server");
+    }
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    setError("Failed to fetch reviews. Please check your connection and try again.");
+  } finally {
+    setLoading(false);
+    setSelected(false);
+  }
+};
   // Handle suggestion selection
   const handleSuggestionSelect = (selectedValue: string) => {
     setInput(selectedValue);
@@ -288,31 +302,52 @@ export const Dashboard = () => {
           </motion.button>
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="mb-6 flex justify-end">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center px-4 py-2 rounded-lg font-medium 
-                ${downloading ? 'bg-green-100 text-green-700' : 'bg-green-500 hover:bg-green-600 text-white'} 
-                shadow-sm transition-all duration-200`}
-              onClick={handleDownloadPDF}
-              disabled={downloading || searchResults.length === 0}
-            >
-              {downloading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating PDF...
-                </>
-              ) : (
-                <>
-                  <FileDown className="w-4 h-4 mr-2" />
-                  Download as PDF
-                </>
-              )}
-            </motion.button>
-          </div>
+      {searchResults.map((result, index) => (
+  <motion.div
+    key={index}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3, delay: index * 0.1 }}
+    className="bg-white rounded-xl shadow-md overflow-hidden"
+  >
+    <div className="p-6">
+      <div className="flex justify-between items-start mb-2">
+        <h2 className="text-xl font-bold text-slate-800">{result.fullName}</h2>
+        {result.datePosted && (
+          <span className="text-sm text-slate-500">{result.datePosted}</span>
         )}
+      </div>
+      <div className="flex items-center mb-3">
+        <div className="flex mr-2">
+          {[...Array(5)].map((_, i) => {
+            // Extract number from "X stars" format
+            const starCount = parseInt(result.stars);
+            
+            return (
+              <Star
+                key={i}
+                className={`w-5 h-5 ${
+                  i < starCount
+                    ? 'text-yellow-400 fill-current drop-shadow-sm' 
+                    : 'text-gray-300 stroke-current fill-none'
+                }`}
+              />
+            );
+          })}
+        </div>
+        <div className="bg-amber-100 px-2 py-0.5 rounded-md">
+          <span className="text-amber-800 font-medium">{result.stars}</span>
+        </div>
+      </div>
+      <p className="text-slate-600 leading-relaxed">
+        {result.reviewText === 'No review text' 
+          ? <span className="text-slate-400 italic">No review provided</span>
+          : result.reviewText
+        }
+      </p>
+    </div>
+  </motion.div>
+))}
 
         <div className="space-y-6">
           <AnimatePresence>
