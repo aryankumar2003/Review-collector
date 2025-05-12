@@ -50,7 +50,7 @@ const SELECTORS = {
 const CONFIG = {
   MAX_REVIEWS: 25,
   SELECTOR_TIMEOUT: 10000,
-  MAX_SCROLL_ATTEMPTS: 10,
+  MAX_SCROLL_ATTEMPTS: 6,
   CACHE_TTL: 3600,
   USER_AGENTS: [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',

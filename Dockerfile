@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Set environment variables for Puppeteer
-ENV GOOGLE_API_KEY=process.env.GOOGLE_API_KEY
+COPY .env.local ./
 # Install Chromium
 RUN apt-get update && apt-get install -y chromium && rm -rf /var/lib/apt/lists/*
 
