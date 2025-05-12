@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer, { Page, Browser } from 'puppeteer';
-import chromium from '@sparticuz/chromium';
+import puppeteer, { Page, Browser } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium-min';
 
 // Define response types for better type safety
 interface Review {
@@ -157,21 +157,14 @@ async function scrapeMapReviews(
   const userAgent = CONFIG.USER_AGENTS[Math.floor(Math.random() * CONFIG.USER_AGENTS.length)];
   
   // Launch browser with optimized AWS Lambda settings
+  const isLocal=!!process.env.CHROME_EXECUTABLE_PATH;
+
   const browser = await puppeteer.launch({ 
-    args: [...chromium.args, 
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu'
-    ],
-    defaultViewport: { width: 1280, height: 800 },
-    executablePath: process.env.AWS_EXECUTION_ENV 
-      ? await chromium.executablePath() 
-      : undefined,
-    headless: "shell"
+
+    args:isLocal? chromium.args:[...chromium.args, '--no-sandbox', '--disable-setuid-sandbox','--incognito','hide-scrollbars'],
+    defaultViewport: chromium.defaultViewport,
+    executablePath:process.env.CHROME_EXECUTABLE_PATH || await chromium.executablePath(),
+    headless: chromium.headless,
   });
   
   try {
