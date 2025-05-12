@@ -163,7 +163,7 @@ async function scrapeMapReviews(
 
     args:isLocal? chromium.args:[...chromium.args, '--no-sandbox', '--disable-setuid-sandbox','--incognito','hide-scrollbars'],
     defaultViewport: chromium.defaultViewport,
-    executablePath:process.env.CHROME_EXECUTABLE_PATH || await chromium.executablePath(),
+    executablePath:process.env.CHROME_EXECUTABLE_PATH || await chromium.executablePath("https://brower.s3.ap-south-1.amazonaws.com/chromium-v135.0.0-next.3-pack.x64.tar"),
     headless: chromium.headless,
   });
   
