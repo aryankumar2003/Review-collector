@@ -301,6 +301,32 @@ export const Dashboard = () => {
             )}
           </motion.button>
         </div>
+           {searchResults.length > 0 && (
+
+          <div className="mb-6 flex justify-end">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center px-4 py-2 rounded-lg font-medium 
+            ${downloading ? 'bg-green-100 text-green-700' : 'bg-green-500 hover:bg-green-600 text-white'} 
+            shadow-sm transition-all duration-200`}
+              onClick={handleDownloadPDF}
+              disabled={downloading || searchResults.length === 0}
+            >
+              {downloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Download as PDF
+                </>
+              )}
+            </motion.button>
+          </div>
+        )} 
 
       {searchResults.map((result, index) => (
   <motion.div
